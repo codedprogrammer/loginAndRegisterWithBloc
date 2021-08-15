@@ -1,6 +1,8 @@
+import 'package:bloc_register_login/auth/auth_repository.dart';
 import 'package:bloc_register_login/screens/login.dart';
 import 'package:bloc_register_login/screens/register.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 
 void main() {
   runApp(MyApp());
@@ -15,11 +17,15 @@ class MyApp extends StatelessWidget {
       theme: ThemeData(
         primarySwatch: Colors.purple,
       ),
-      initialRoute: '/',
-      routes: {
-        '/' : (context) => Login(),
-        '/signUpScreen' : (context) => SignUp()
-      },
+      home: RepositoryProvider(
+        create: (context) => AuthRepository(),
+        child: Login(),
+      ),
+      // initialRoute: '/',
+      // routes: {
+      //   '/' : (context) => Login(),
+      //   '/signUpScreen' : (context) => SignUp()
+      // },
     );
   }
 }

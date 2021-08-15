@@ -1,4 +1,10 @@
+import 'package:bloc_register_login/auth/auth_repository.dart';
+import 'package:bloc_register_login/auth/form_submission_status.dart';
+import 'package:bloc_register_login/auth/login/login_bloc.dart';
+import 'package:bloc_register_login/auth/login/login_event.dart';
+import 'package:bloc_register_login/auth/login/login_state.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 
 class Login extends StatefulWidget {
   @override
@@ -17,7 +23,11 @@ class _LoginState extends State<Login> {
     return Scaffold(
       backgroundColor: Colors.white,
       body: SingleChildScrollView(
-        child: loginForm(),
+        child: BlocProvider(
+          create: (context) =>
+              LoginBloc(authRepository: context.read<AuthRepository>()),
+          child: loginForm(),
+        ),
       ),
     );
   }
@@ -75,62 +85,80 @@ class _LoginState extends State<Login> {
   }
 
   Widget emailAddressField() {
-    return TextFormField(
-      controller: emailAddress,
-      keyboardType: TextInputType.emailAddress,
-      validator: (value) => null,
-      decoration: InputDecoration(
-          hintText: 'Email Address',
-          border: OutlineInputBorder(borderRadius: BorderRadius.circular(12))),
-    );
+    return BlocBuilder<LoginBloc, LoginState>(builder: (context, state) {
+      return TextFormField(
+        controller: emailAddress,
+        keyboardType: TextInputType.emailAddress,
+        validator: (value) => null,
+        onChanged: (value) => context.read<LoginBloc>().add(
+              LoginUsernameChanged(username: value),
+            ),
+        decoration: InputDecoration(
+            hintText: 'Email Address',
+            border:
+                OutlineInputBorder(borderRadius: BorderRadius.circular(12))),
+      );
+    });
   }
 
   Widget passwordField() {
-    return TextFormField(
-      controller: password,
-      obscureText: !_passwordVisible,
-      validator: (value) => null,
-      decoration: InputDecoration(
-          suffixIcon: IconButton(
-            icon: Icon(
-              _passwordVisible ? Icons.visibility : Icons.visibility_off,
+    return BlocBuilder<LoginBloc, LoginState>(builder: (context, state) {
+      return TextFormField(
+        controller: password,
+        obscureText: !_passwordVisible,
+        validator: (value) => null,
+        onChanged: (value) => context.read<LoginBloc>().add(
+              LoginPasswordChanged(password: value),
             ),
-            onPressed: () {
-              setState(() {
-                _passwordVisible = !_passwordVisible;
-              });
-            },
-          ),
-          hintText: 'Password',
-          border: OutlineInputBorder(borderRadius: BorderRadius.circular(12))),
-    );
+        decoration: InputDecoration(
+            suffixIcon: IconButton(
+              icon: Icon(
+                _passwordVisible ? Icons.visibility : Icons.visibility_off,
+              ),
+              onPressed: () {
+                setState(() {
+                  _passwordVisible = !_passwordVisible;
+                });
+              },
+            ),
+            hintText: 'Password',
+            border:
+                OutlineInputBorder(borderRadius: BorderRadius.circular(12))),
+      );
+    });
   }
 
   Widget loginButton() {
-    return ElevatedButton(
-      onPressed: () {},
-      style: ButtonStyle(),
-      child: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Text(
-          'Sign Up',
-          style: TextStyle(fontSize: 18, fontStyle: FontStyle.normal),
+    return BlocBuilder<LoginBloc, LoginState>(builder: (context, state){
+      return state.formStatus is FormSubmitting 
+      ? CircularProgressIndicator()
+      :ElevatedButton(
+        onPressed: () {
+          context.read<LoginBloc>().add(LoginSubmittedButton());
+        },
+        style: ButtonStyle(),
+        child: Padding(
+          padding: const EdgeInsets.all(16.0),
+          child: Text(
+            'Sign Up',
+            style: TextStyle(fontSize: 18, fontStyle: FontStyle.normal),
+          ),
         ),
-      ),
+      );
+    }
     );
   }
 
   Widget registerText() {
-    return Row(mainAxisAlignment: MainAxisAlignment.center, 
-    children: <Widget>[
+    return Row(mainAxisAlignment: MainAxisAlignment.center, children: <Widget>[
       Text('Don\'t have an account?',
           style: TextStyle(fontSize: 18, fontStyle: FontStyle.normal)),
       SizedBox(width: 10),
       GestureDetector(
-        onTap: (){
-          Navigator.pushNamed(context, '/signUpScreen');
-        },
-              child: Text('Sign Up',
+        // onTap: () {
+        //   Navigator.pushNamed(context, '/signUpScreen');
+        // },
+        child: Text('Sign Up',
             style: TextStyle(
                 color: Colors.purpleAccent,
                 fontSize: 18,
