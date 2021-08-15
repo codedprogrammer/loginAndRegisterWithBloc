@@ -8,6 +8,7 @@ class Login extends StatefulWidget {
 class _LoginState extends State<Login> {
   TextEditingController emailAddress = TextEditingController();
   TextEditingController password = TextEditingController();
+  final formKey = GlobalKey<FormState>();
 
   bool _passwordVisible = false;
 
@@ -23,6 +24,7 @@ class _LoginState extends State<Login> {
 
   Widget loginForm() {
     return Form(
+      key: formKey,
       child: Padding(
         padding: const EdgeInsets.symmetric(vertical: 30, horizontal: 20),
         child: Column(
@@ -76,6 +78,7 @@ class _LoginState extends State<Login> {
     return TextFormField(
       controller: emailAddress,
       keyboardType: TextInputType.emailAddress,
+      validator: (value) => null,
       decoration: InputDecoration(
           hintText: 'Email Address',
           border: OutlineInputBorder(borderRadius: BorderRadius.circular(12))),
@@ -86,6 +89,7 @@ class _LoginState extends State<Login> {
     return TextFormField(
       controller: password,
       obscureText: !_passwordVisible,
+      validator: (value) => null,
       decoration: InputDecoration(
           suffixIcon: IconButton(
             icon: Icon(
