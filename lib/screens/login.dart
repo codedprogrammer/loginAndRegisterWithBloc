@@ -1,10 +1,15 @@
+import 'dart:convert';
+
 import 'package:bloc_register_login/auth/auth_repository.dart';
 import 'package:bloc_register_login/auth/form_submission_status.dart';
 import 'package:bloc_register_login/auth/login/login_bloc.dart';
 import 'package:bloc_register_login/auth/login/login_event.dart';
 import 'package:bloc_register_login/auth/login/login_state.dart';
+import 'package:bloc_register_login/screens/register.dart';
+import 'package:bloc_register_login/screens/welcome_page.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:http/http.dart' as http;
 
 class Login extends StatefulWidget {
   @override
@@ -33,25 +38,33 @@ class _LoginState extends State<Login> {
   }
 
   Widget loginForm() {
-    return Form(
-      key: formKey,
-      child: Padding(
-        padding: const EdgeInsets.symmetric(vertical: 30, horizontal: 20),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: <Widget>[
-            illustrationImage(),
-            SizedBox(height: 20),
-            loginText(),
-            SizedBox(height: 20),
-            emailAddressField(),
-            SizedBox(height: 30),
-            passwordField(),
-            SizedBox(height: 30),
-            loginButton(),
-            SizedBox(height: 30),
-            registerText()
-          ],
+    return BlocListener<LoginBloc, LoginState>(
+      listener: (context, state){
+        final formStatus = state.formStatus;
+        if(formStatus == SubmissionFailed){
+        showSnackBar(context, formStatus.toString());
+        }
+      },
+      child: Form(
+        key: formKey,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(vertical: 30, horizontal: 20),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: <Widget>[
+              illustrationImage(),
+              SizedBox(height: 20),
+              loginText(),
+              SizedBox(height: 20),
+              emailAddressField(),
+              SizedBox(height: 30),
+              passwordField(),
+              SizedBox(height: 30),
+              loginButton(),
+              SizedBox(height: 30),
+              registerText()
+            ],
+          ),
         ),
       ),
     );
@@ -129,24 +142,25 @@ class _LoginState extends State<Login> {
   }
 
   Widget loginButton() {
-    return BlocBuilder<LoginBloc, LoginState>(builder: (context, state){
-      return state.formStatus is FormSubmitting 
-      ? CircularProgressIndicator()
-      :ElevatedButton(
-        onPressed: () {
-          context.read<LoginBloc>().add(LoginSubmittedButton());
-        },
-        style: ButtonStyle(),
-        child: Padding(
-          padding: const EdgeInsets.all(16.0),
-          child: Text(
-            'Sign Up',
-            style: TextStyle(fontSize: 18, fontStyle: FontStyle.normal),
-          ),
-        ),
-      );
-    }
-    );
+    return BlocBuilder<LoginBloc, LoginState>(builder: (context, state) {
+      return state.formStatus is FormSubmitting
+          ? Center(child: CircularProgressIndicator())
+          : ElevatedButton(
+              onPressed: () {
+                login();
+                // signInUser();
+                // context.read<LoginBloc>().add(LoginSubmittedButton());
+              },
+              style: ButtonStyle(),
+              child: Padding(
+                padding: const EdgeInsets.all(16.0),
+                child: Text(
+                  'Log In',
+                  style: TextStyle(fontSize: 18, fontStyle: FontStyle.normal),
+                ),
+              ),
+            );
+    });
   }
 
   Widget registerText() {
@@ -155,9 +169,10 @@ class _LoginState extends State<Login> {
           style: TextStyle(fontSize: 18, fontStyle: FontStyle.normal)),
       SizedBox(width: 10),
       GestureDetector(
-        // onTap: () {
-        //   Navigator.pushNamed(context, '/signUpScreen');
-        // },
+        onTap: () {
+          Navigator.push(
+              context, MaterialPageRoute(builder: (context) => SignUp()));
+        },
         child: Text('Sign Up',
             style: TextStyle(
                 color: Colors.purpleAccent,
@@ -166,4 +181,50 @@ class _LoginState extends State<Login> {
       ),
     ]);
   }
+
+  void showSnackBar(BuildContext context, String message){
+    final snackBar = SnackBar(content: Text(message));
+    ScaffoldMessenger.of(context).showSnackBar(snackBar);
+  }
+
+//   signInUser() async {
+//     accountBloc.add(LoginUser(login: loginForm));
+
+// }
+
+
+
+Future<dynamic> login() async {
+  final response = await http.post(
+      Uri.parse('https://rapidapi.com/arupsarkar/api/login-signup/'),
+      headers: <String, String>{
+            'Origin': 'http://127.0.0.1',
+            'X-RapidAPI-Key': 'e068e353demsh7404948073ace75p140f87jsn4e46e0e88eed'.toString(),
+            'X-RapidAPI-Host': 'login-signup.p.rapidapi.com'
+          },
+      body:  jsonEncode(<String, String>{
+            'email': emailAddress.text,
+            'password': password.text
+          }));
+
+  if (response.statusCode == 200 && emailAddress.text.isNotEmpty && password.text.isNotEmpty) {
+    // If the server did return a 200 OK response, then parse the JSON.
+    return Navigator.push(context, MaterialPageRoute(builder: (context) => WelcomePage()));
+  } else {
+    // If the server did not return a 200 OK response, then throw an exception.
+    createSnackBar('Invalid username / or password');
+    throw Exception('User or Password was incorrect.');
+  }
+}
+
+void createSnackBar(String message) {                                                                               
+  final snackBar = new SnackBar(content: new Text(message),                                                         
+  backgroundColor: Colors.red);                                                                                      
+
+  // Find the Scaffold in the Widget tree and use it to show a SnackBar!                                            
+  ScaffoldMessenger.of(context).showSnackBar(
+          snackBar
+        );                                                              
+  } 
+
 }

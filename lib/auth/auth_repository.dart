@@ -3,5 +3,6 @@ class AuthRepository{
     print('attempting login');
     await Future.delayed(Duration(seconds: 5));
     print('logged in');
+    throw Exception('login failed');
   }
 }
