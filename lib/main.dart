@@ -1,11 +1,23 @@
 import 'package:bloc_register_login/auth/auth_repository.dart';
+import 'package:bloc_register_login/auth/login/login_bloc.dart';
 import 'package:bloc_register_login/screens/login.dart';
-import 'package:bloc_register_login/screens/register.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 void main() {
-  runApp(MyApp());
+    runApp(
+      MultiBlocProvider(
+          providers: [
+            BlocProvider<LoginBloc>(
+              create: (context) =>
+                  LoginBloc(AuthRepository()),
+            ),
+
+          ],
+          child: MyApp()
+      )
+  );
+  // runApp(MyApp());
 }
 
 class MyApp extends StatelessWidget {
@@ -19,7 +31,7 @@ class MyApp extends StatelessWidget {
       ),
       home: RepositoryProvider(
         create: (context) => AuthRepository(),
-        child: Login(),
+        child: LoginScreen(),
       ),
       // initialRoute: '/',
       // routes: {

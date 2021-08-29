@@ -1,15 +1,12 @@
+
+import 'package:bloc_register_login/model/login.dart';
+
 abstract class LoginEvent{}
 
-class LoginUsernameChanged extends LoginEvent{
-  final String username;
 
-  LoginUsernameChanged({this.username});
+class LoginUser extends LoginEvent {
+  final Login login;
+  LoginUser({this.login});
 }
 
-class LoginPasswordChanged extends LoginEvent{
-  final String password;
-
-  LoginPasswordChanged({this.password});
-}
-class LoginSubmittedButton extends LoginEvent{}
 

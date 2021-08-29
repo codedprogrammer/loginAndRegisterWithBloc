@@ -1,51 +1,77 @@
 import 'dart:convert';
+import 'dart:async';
 
 import 'package:bloc_register_login/auth/auth_repository.dart';
-import 'package:bloc_register_login/auth/form_submission_status.dart';
 import 'package:bloc_register_login/auth/login/login_bloc.dart';
 import 'package:bloc_register_login/auth/login/login_event.dart';
 import 'package:bloc_register_login/auth/login/login_state.dart';
+import 'package:bloc_register_login/model/login.dart';
+import 'package:bloc_register_login/routes/routes.dart';
 import 'package:bloc_register_login/screens/register.dart';
-import 'package:bloc_register_login/screens/welcome_page.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:http/http.dart' as http;
 
-class Login extends StatefulWidget {
+class LoginScreen extends StatefulWidget {
   @override
-  _LoginState createState() => _LoginState();
+  _LoginScreenState createState() => _LoginScreenState();
 }
 
-class _LoginState extends State<Login> {
+class _LoginScreenState extends State<LoginScreen> {
   TextEditingController emailAddress = TextEditingController();
   TextEditingController password = TextEditingController();
   final formKey = GlobalKey<FormState>();
-
+  LoginBloc loginBloc;
   bool _passwordVisible = false;
+  bool isLoading = false;
+  Login loginForm;
+
+  
+
+  @override
+  void initState() {
+    super.initState();
+    loginBloc = BlocProvider.of<LoginBloc>(context);
+  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.white,
       body: SingleChildScrollView(
-        child: BlocProvider(
-          create: (context) =>
-              LoginBloc(authRepository: context.read<AuthRepository>()),
-          child: loginForm(),
-        ),
+        child: bodyWidget(),
       ),
     );
   }
 
-  Widget loginForm() {
-    return BlocListener<LoginBloc, LoginState>(
-      listener: (context, state){
-        final formStatus = state.formStatus;
-        if(formStatus == SubmissionFailed){
-        showSnackBar(context, formStatus.toString());
-        }
-      },
-      child: Form(
+  bodyWidget() {
+    return BlocConsumer<LoginBloc, LoginState>(listener: (context, state) {
+      if (state is LoadingOn) {
+        setState(() {
+          isLoading = true;
+        });
+      } else if (state is LoadingOff) {
+        setState(() {
+          isLoading = false;
+        });
+      } else if (state is LoginFailed) {
+       createSnackBar(state.errorResponse.error);
+      } else if (state is LoginSuccessState) {
+        goToMainPage();
+      }
+    }, builder: (context, state) {
+      return SingleChildScrollView(
+        child: loginWidget(),
+      );
+    });
+  }
+
+  goToMainPage() {
+    Navigator.pushNamed(context, Routes.welcomePage);
+  }
+
+
+  Widget loginWidget() {
+    return Form(
         key: formKey,
         child: Padding(
           padding: const EdgeInsets.symmetric(vertical: 30, horizontal: 20),
@@ -66,8 +92,7 @@ class _LoginState extends State<Login> {
             ],
           ),
         ),
-      ),
-    );
+      );
   }
 
   Widget illustrationImage() {
@@ -98,31 +123,22 @@ class _LoginState extends State<Login> {
   }
 
   Widget emailAddressField() {
-    return BlocBuilder<LoginBloc, LoginState>(builder: (context, state) {
       return TextFormField(
         controller: emailAddress,
         keyboardType: TextInputType.emailAddress,
         validator: (value) => null,
-        onChanged: (value) => context.read<LoginBloc>().add(
-              LoginUsernameChanged(username: value),
-            ),
         decoration: InputDecoration(
             hintText: 'Email Address',
             border:
                 OutlineInputBorder(borderRadius: BorderRadius.circular(12))),
       );
-    });
   }
 
   Widget passwordField() {
-    return BlocBuilder<LoginBloc, LoginState>(builder: (context, state) {
       return TextFormField(
         controller: password,
         obscureText: !_passwordVisible,
         validator: (value) => null,
-        onChanged: (value) => context.read<LoginBloc>().add(
-              LoginPasswordChanged(password: value),
-            ),
         decoration: InputDecoration(
             suffixIcon: IconButton(
               icon: Icon(
@@ -138,17 +154,17 @@ class _LoginState extends State<Login> {
             border:
                 OutlineInputBorder(borderRadius: BorderRadius.circular(12))),
       );
-    });
   }
 
   Widget loginButton() {
-    return BlocBuilder<LoginBloc, LoginState>(builder: (context, state) {
-      return state.formStatus is FormSubmitting
-          ? Center(child: CircularProgressIndicator())
-          : ElevatedButton(
+    return ElevatedButton(
               onPressed: () {
-                login();
-                // signInUser();
+                if (formKey.currentState.validate()) {
+                loginForm = Login(
+                    password: password.text.trim(),
+                    email: emailAddress.text.trim());
+                signInUser();
+              }
                 // context.read<LoginBloc>().add(LoginSubmittedButton());
               },
               style: ButtonStyle(),
@@ -160,7 +176,10 @@ class _LoginState extends State<Login> {
                 ),
               ),
             );
-    });
+  }
+
+  signInUser() async {
+    loginBloc.add(LoginUser(login: loginForm));
   }
 
   Widget registerText() {
@@ -182,7 +201,7 @@ class _LoginState extends State<Login> {
     ]);
   }
 
-  void showSnackBar(BuildContext context, String message){
+  void showSnackBar(BuildContext context, String message) {
     final snackBar = SnackBar(content: Text(message));
     ScaffoldMessenger.of(context).showSnackBar(snackBar);
   }
@@ -192,39 +211,38 @@ class _LoginState extends State<Login> {
 
 // }
 
+  // Future<dynamic> login() async {
+  //   final response = await http.post(
+  //       Uri.parse('https://rapidapi.com/arupsarkar/api/login-signup/'),
+  //       headers: <String, String>{
+  //         'Origin': 'http://127.0.0.1',
+  //         'X-RapidAPI-Key':
+  //             'e068e353demsh7404948073ace75p140f87jsn4e46e0e88eed'.toString(),
+  //         'X-RapidAPI-Host': 'login-signup.p.rapidapi.com'
+  //       },
+  //       body: jsonEncode(<String, String>{
+  //         'email': emailAddress.text,
+  //         'password': password.text
+  //       }));
 
+  //   if (response.statusCode == 200 &&
+  //       emailAddress.text.isNotEmpty &&
+  //       password.text.isNotEmpty) {
+  //     // If the server did return a 200 OK response, then parse the JSON.
+  //     return Navigator.push(
+  //         context, MaterialPageRoute(builder: (context) => WelcomePage()));
+  //   } else {
+  //     // If the server did not return a 200 OK response, then throw an exception.
+  //     createSnackBar('Invalid username / or password');
+  //     throw Exception('User or Password was incorrect.');
+  //   }
+  // }
 
-Future<dynamic> login() async {
-  final response = await http.post(
-      Uri.parse('https://rapidapi.com/arupsarkar/api/login-signup/'),
-      headers: <String, String>{
-            'Origin': 'http://127.0.0.1',
-            'X-RapidAPI-Key': 'e068e353demsh7404948073ace75p140f87jsn4e46e0e88eed'.toString(),
-            'X-RapidAPI-Host': 'login-signup.p.rapidapi.com'
-          },
-      body:  jsonEncode(<String, String>{
-            'email': emailAddress.text,
-            'password': password.text
-          }));
+  void createSnackBar(String message) {
+    final snackBar =
+        new SnackBar(content: new Text(message), backgroundColor: Colors.red);
 
-  if (response.statusCode == 200 && emailAddress.text.isNotEmpty && password.text.isNotEmpty) {
-    // If the server did return a 200 OK response, then parse the JSON.
-    return Navigator.push(context, MaterialPageRoute(builder: (context) => WelcomePage()));
-  } else {
-    // If the server did not return a 200 OK response, then throw an exception.
-    createSnackBar('Invalid username / or password');
-    throw Exception('User or Password was incorrect.');
+    // Find the Scaffold in the Widget tree and use it to show a SnackBar!
+    ScaffoldMessenger.of(context).showSnackBar(snackBar);
   }
-}
-
-void createSnackBar(String message) {                                                                               
-  final snackBar = new SnackBar(content: new Text(message),                                                         
-  backgroundColor: Colors.red);                                                                                      
-
-  // Find the Scaffold in the Widget tree and use it to show a SnackBar!                                            
-  ScaffoldMessenger.of(context).showSnackBar(
-          snackBar
-        );                                                              
-  } 
-
 }

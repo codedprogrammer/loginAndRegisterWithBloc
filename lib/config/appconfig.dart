@@ -3,9 +3,10 @@ class AppConfig {
   static const String TOKEN = "token";
 
   //Application  BaseURL
-  static const String BASE_URL = "https://rapidapi.com/arupsarkar/api/login-signup/";
+  static const String BASE_URL = "http://codeninja-001-site3.btempurl.com/api/";
 
   //Account URL
+  static const String ACCOUNT = 'Account/';
   static const String LOGIN = 'Login';
-  static const String SIGNUP = 'Signup';
+  static const String REGISTER = 'Register';
 }
